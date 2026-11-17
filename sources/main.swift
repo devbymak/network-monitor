@@ -283,7 +283,7 @@ final class TrafficModel: ObservableObject {
     @Published var showsUsage = UserDefaults.standard.bool(forKey: "showsUsage") {
         didSet { defaults.set(showsUsage, forKey: "showsUsage"); onLayoutChange?() }
     }
-    /// Off by default: with it off, Jarian makes no network requests of its own.
+    /// Off by default: with it off, Network Monitor makes no network requests of its own.
     @Published var measuresPing = UserDefaults.standard.bool(forKey: "measuresPing") {
         didSet { defaults.set(measuresPing, forKey: "measuresPing"); updatePinger(); onLayoutChange?() }
     }
@@ -341,7 +341,7 @@ final class TrafficModel: ObservableObject {
         past = UsageHistory(retention: UsageHistory.retentionChoices.first { $0 == saved.integer(forKey: "historyDays") } ?? 30,
                             days: UsageHistory.decode(saved.stringArray(forKey: "usageHistory") ?? []), today: today)
         if stored.day != today { past.record(stored, today: today) }
-        saveUsage()  // Writes back any days that aged out while Jarian was not running.
+        saveUsage()  // Writes back any days that aged out while Network Monitor was not running.
         pinger.onChange = { [weak self] reading in self?.ping = reading; self?.onUpdate?() }
         updatePinger()
     }
@@ -562,7 +562,7 @@ struct PopoverView: View {
                     Image(nsImage: icon).resizable().frame(width: 36, height: 36).accessibilityHidden(true)
                 } else { Image(systemName: "arrow.up.arrow.down").font(.title2).accessibilityHidden(true) }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Jarian").font(.headline)
+                    Text("Network Monitor").font(.headline)
                     Text(model.interfaceTitle).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -629,7 +629,7 @@ struct PopoverView: View {
             HStack {
                 Button("Settings…", action: openSettings).buttonStyle(.plain).foregroundStyle(.secondary)
                 Spacer()
-                Button("Quit Jarian", action: quit).buttonStyle(.plain).foregroundStyle(.secondary)
+                Button("Quit Network Monitor", action: quit).buttonStyle(.plain).foregroundStyle(.secondary)
             }
         }
         .padding(16)
@@ -741,7 +741,7 @@ struct SettingsView: View {
                 set: { model.setLaunchAtLogin($0) }))
             if model.loginItemStatus == .requiresApproval {
                 HStack {
-                    Text("Allow Jarian in Login Items to finish.").font(.caption).foregroundStyle(.orange)
+                    Text("Allow Network Monitor in Login Items to finish.").font(.caption).foregroundStyle(.orange)
                     Spacer()
                     Button("Open Login Items") { SMAppService.openSystemSettingsLoginItems() }
                 }
@@ -812,7 +812,7 @@ struct SettingsView: View {
         Section {
             Toggle(isOn: $model.measuresPing) {
                 Text("Measure ping and location")
-                Text("When off, Jarian makes no network requests.")
+                Text("When off, Network Monitor makes no network requests.")
             }
         }
         Section {
@@ -869,14 +869,14 @@ struct SettingsView: View {
         } header: {
             Text("History")
         } footer: {
-            footer("Saved on disk: one total per day for the days you keep, at most 90, so it never grows over time. The speed graph stays in memory. Usage counts all physical interfaces while Jarian is running. No logs are written.")
+            footer("Saved on disk: one total per day for the days you keep, at most 90, so it never grows over time. The speed graph stays in memory. Usage counts all physical interfaces while Network Monitor is running. No logs are written.")
         }
     }
 
     private var pingFooter: String {
         let seconds = model.pingInterval, server = model.pingServer
         let every = seconds == 1 ? "second" : seconds == 60 ? "minute" : "\(Int(seconds)) seconds"
-        return "Every \(every), Jarian times a small HTTPS request to \(server.url.host ?? server.title). "
+        return "Every \(every), Network Monitor times a small HTTPS request to \(server.url.host ?? server.title). "
             + "Requests take the same route as your other traffic, through any VPN or proxy, so they show what websites see."
     }
     private var locationFooter: String? {
@@ -1012,7 +1012,7 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var drawnAppearance: NSAppearance.Name?
     func applicationDidFinishLaunching(_ notification: Notification) {
         item.button?.imagePosition = .imageOnly
-        item.button?.setAccessibilityLabel("Jarian network speed")
+        item.button?.setAccessibilityLabel("Network Monitor: network speed")
         item.button?.target = self; item.button?.action = #selector(statusItemClicked)
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         popover.behavior = .transient
@@ -1053,7 +1053,7 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let summary = "Download \(model.speed(model.rate.received)), upload \(model.speed(model.rate.sent)), today \(Format.amount(model.usage.total))"
             + (model.pingSummary.map { "\n\($0)" } ?? "")
         item.button?.setAccessibilityValue(summary)
-        item.button?.toolTip = model.error ?? "Jarian · \(model.interfaceTitle)\n\(summary)"
+        item.button?.toolTip = model.error ?? "Network Monitor · \(model.interfaceTitle)\n\(summary)"
     }
     @objc func statusItemClicked() {
         let event = NSApp.currentEvent
@@ -1077,11 +1077,11 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let reset = NSMenuItem(title: "Reset Today's Usage", action: #selector(resetUsage), keyEquivalent: "")
         reset.target = self; menu.addItem(reset)
         menu.addItem(.separator())
-        let open = NSMenuItem(title: "Open Jarian", action: #selector(togglePopover), keyEquivalent: "")
+        let open = NSMenuItem(title: "Open Network Monitor", action: #selector(togglePopover), keyEquivalent: "")
         open.target = self; menu.addItem(open)
         let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self; menu.addItem(settings)
-        let quit = NSMenuItem(title: "Quit Jarian", action: #selector(quitApp), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit Network Monitor", action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self; menu.addItem(quit)
         // Attach only while open so a left click still shows the popover.
         menu.delegate = self
@@ -1151,10 +1151,10 @@ if CommandLine.arguments.contains("--probe") {
     }
     pinger.start()
     RunLoop.main.run(until: Date(timeIntervalSinceNow: 30))
-} else if NSRunningApplication.runningApplications(withBundleIdentifier: "local.jarian")
+} else if NSRunningApplication.runningApplications(withBundleIdentifier: "local.networkmonitor")
             .contains(where: { $0.processIdentifier != getpid() }) {
     // Two copies would show two menu bar items and overwrite each other's usage totals.
-    fputs("Jarian is already running.\n", stderr)
+    fputs("Network Monitor is already running.\n", stderr)
 } else {
     let app = NSApplication.shared
     let delegate = MenuApp()

@@ -1,4 +1,4 @@
-// Draw the Jarian app icon: an upload and a download arrow on a navy tile.
+// Draw the Network Monitor app icon: an upload and a download arrow on a navy tile.
 // Regenerate assets/app-icon.png with: xcrun swift assets/app-icon.swift assets/app-icon.png
 import CoreGraphics
 import Foundation

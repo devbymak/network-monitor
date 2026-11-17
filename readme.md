@@ -1,6 +1,6 @@
 <div align="center">
 
-# Jarian: network speed monitor for the Mac menu bar
+# Network Monitor: network speed monitor for the Mac menu bar
 
 **See your upload and download speed, data usage, and ping at a glance. Free, open source, and private.**
 
@@ -12,12 +12,12 @@
 </div>
 
 <p align="center">
-  <img src="assets/cover.png" alt="Jarian on a Mac: live upload and download speed and ping in the menu bar, the popover with speed and ping graphs and daily data usage, and the Settings window for menu bar layout, units, and ping, next to a list of features">
+  <img src="assets/cover.png" alt="Network Monitor on a Mac: live upload and download speed and ping in the menu bar, the popover with speed and ping graphs and daily data usage, and the Settings window for menu bar layout, units, and ping, next to a list of features">
 </p>
 
-**Jarian** (جریان, Persian for "flow") is a small, native macOS menu bar app that shows your **internet speed** in real time. It's a Mac take on the popular GNOME *Internet Speed Monitor* extension. It shows what you'd want to know about your connection, and it doesn't watch you.
+**Network Monitor** is a small, native macOS menu bar app that shows your **internet speed** in real time. It's a Mac take on the popular GNOME *Internet Speed Monitor* extension. It shows what you'd want to know about your connection, and it doesn't watch you.
 
-## Why Jarian
+## Why Network Monitor
 
 - ⚡ **Live speed in the menu bar.** Upload and download speed, stacked or side by side, in MB/s or Mb/s.
 - 📊 **Data usage tracking.** Today's total, plus yesterday and the last 7, 30, and 90 days.
@@ -29,39 +29,60 @@
 
 ## Install
 
-Requires macOS 13 Ventura or later on Apple Silicon, and the Xcode Command Line Tools (`xcode-select --install`).
+You need an Apple silicon Mac and macOS 13 Ventura or later. Install with [Homebrew](https://brew.sh):
 
 ```sh
-git clone https://github.com/devbymak/jaryan.git && cd jaryan
+brew tap devbymak/tap
+brew trust devbymak/tap
+brew install --cask network-monitor
+```
+
+Homebrew asks you to trust taps from outside Homebrew before it installs from them. Network Monitor isn't notarized by Apple (that needs a paid developer account), so the cask clears macOS's download warning for you. `brew upgrade` keeps it up to date.
+
+To build from source instead, you also need the Xcode Command Line Tools (`xcode-select --install`):
+
+```sh
+git clone https://github.com/devbymak/network-monitor.git && cd network-monitor
 ./build.sh --install
 ```
 
-This builds Jarian, copies it to `/Applications`, and opens it. Look for the speed readout in your menu bar. Click it for details, or right-click it for quick options.
+This builds Network Monitor, copies it to `/Applications`, and opens it. Look for the speed readout in your menu bar. Click it for details, or right-click it for quick options.
+
+<details>
+<summary><b>Uninstall</b></summary>
+
+Installed with Homebrew: `brew uninstall --cask network-monitor` (add `--zap` to remove your settings and usage history too).
+
+Built from source: quit Network Monitor, delete it from `/Applications`, and delete `~/Library/Containers/local.networkmonitor` to remove your settings.
+
+</details>
 
 ## Privacy
 
-With ping off (the default), Jarian has **no network access** of its own. It only reads your Mac's interface counters. With ping on, it contacts only the ping server and location service you choose, sends no cookies and a generic user agent, and caps every reply. On disk it keeps only your preferences and one total per day (at most 90 days). The App Sandbox blocks it from reading your files or accepting incoming connections.
+With ping off (the default), Network Monitor has **no network access** of its own. It only reads your Mac's interface counters. With ping on, it contacts only the ping server and location service you choose, sends no cookies and a generic user agent, and caps every reply. On disk it keeps only your preferences and one total per day (at most 90 days). The App Sandbox blocks it from reading your files or accepting incoming connections.
 
 <details>
 <summary><b>For developers</b></summary>
 
 ```sh
 ./test.sh    # run the tests
-./build.sh   # build Jarian.app here without installing it
+./build.sh   # build Network Monitor.app here without installing it
 ```
 
-- `Jarian.app/Contents/MacOS/jarian --probe` prints each interface's counters and whether they're counted.
+- `'Network Monitor.app/Contents/MacOS/networkmonitor' --probe` prints each interface's counters and whether they're counted.
 - `--ping` prints ping and location readings for 30 seconds. To pick providers, put `-pingServer google|apple|cloudflare`, `-locationService ipinfo|geojs|ipsb|ifconfig|cloudflare|off`, or `-pingInterval 1|2|5|10|30|60` before it.
-- Preferences are stored in `~/Library/Containers/local.jarian`.
+- Preferences are stored in `~/Library/Containers/local.networkmonitor`.
 
-The default build is signed ad hoc, so it runs only on the Mac that built it. To share it, sign it with a Developer ID and notarize it:
+The default build is signed ad hoc and isn't notarized. With a Developer ID you can sign and notarize it instead:
 
 ```sh
-JARIAN_SIGN_IDENTITY='Developer ID Application: Your Name (TEAMID)' ./build.sh
-ditto -c -k --keepParent Jarian.app Jarian.zip
-xcrun notarytool submit Jarian.zip --keychain-profile <profile> --wait
-xcrun stapler staple Jarian.app
+NETWORK_MONITOR_SIGN_IDENTITY='Developer ID Application: Your Name (TEAMID)' ./build.sh
+ditto -c -k --keepParent 'Network Monitor.app' NetworkMonitor.zip
+xcrun notarytool submit NetworkMonitor.zip --keychain-profile <profile> --wait
+xcrun stapler staple 'Network Monitor.app'
 ```
+
+Releases are automatic: merging `main` into the `release` branch builds the app, publishes a GitHub Release versioned from the conventional commits since the last tag, and updates the Homebrew cask. `node --test scripts/*.test.mjs` tests the release scripts.
 
 `assets/app-icon.swift` draws the app icon; run `xcrun swift assets/app-icon.swift assets/app-icon.png` to regenerate it. The screenshot uses demo data.
 
