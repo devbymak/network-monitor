@@ -15,7 +15,9 @@ for size in 16 32 128 256 512; do
 done
 mkdir -p .build/module-cache
 cache_path="$(cd .build/module-cache && pwd -P)"
-xcrun swift -module-cache-path "$cache_path" sources/icon.swift .build/app-icon.iconset 'Network Monitor.app/Contents/Resources/app-icon.icns'
+# iconutil, not a hand-built ICNS: macOS misreads small PNGs stored under the icp4/icp5 types, so 16 and 32 point icons
+# (Login Items, list views) showed noise.
+iconutil -c icns .build/app-icon.iconset -o 'Network Monitor.app/Contents/Resources/app-icon.icns'
 xcrun swiftc -target arm64-apple-macosx13.0 -module-cache-path "$cache_path" -swift-version 5 -O -framework AppKit -framework SystemConfiguration -framework ServiceManagement -framework Network sources/traffic.swift sources/graph.swift sources/main.swift -o 'Network Monitor.app/Contents/MacOS/networkmonitor'
 cat > 'Network Monitor.app/Contents/Info.plist' <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
