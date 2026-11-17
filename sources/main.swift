@@ -1008,6 +1008,8 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var menuOpen = false
     /// Redraws the colored ping image when the menu bar turns light or dark.
     private var appearanceObservation: NSKeyValueObservation?
+    /// The menu bar appearance the current image was drawn for.
+    private var drawnAppearance: NSAppearance.Name?
     func applicationDidFinishLaunching(_ notification: Notification) {
         item.button?.imagePosition = .imageOnly
         item.button?.setAccessibilityLabel("Jarian network speed")
@@ -1021,8 +1023,12 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         model.onUpdate = { [weak self] in self?.refreshStatusItem() }
         model.onLayoutChange = { [weak self] in self?.refreshStatusItem() }
         model.onIntervalChange = { [weak self] in self?.startTimer() }
-        appearanceObservation = item.button?.observe(\.effectiveAppearance) { [weak self] _, _ in
-            DispatchQueue.main.async { self?.refreshStatusItem() }
+        // Setting the button's image also reports an appearance change, so redrawing on every report would loop forever.
+        appearanceObservation = item.button?.observe(\.effectiveAppearance) { [weak self] button, _ in
+            DispatchQueue.main.async {
+                guard let self, button.effectiveAppearance.name != self.drawnAppearance else { return }
+                self.refreshStatusItem()
+            }
         }
         let center = NSWorkspace.shared.notificationCenter
         center.addObserver(self, selector: #selector(save), name: NSWorkspace.willSleepNotification, object: nil)
@@ -1040,6 +1046,7 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let items = model.menuBarItems
         // The menu bar's own appearance follows the wallpaper, so it can differ from the app's.
         var textColor = NSColor.labelColor
+        drawnAppearance = item.button?.effectiveAppearance.name
         item.button?.effectiveAppearance.performAsCurrentDrawingAppearance { textColor = NSColor.labelColor.usingColorSpace(.sRGB) ?? .labelColor }
         item.button?.image = MenuBarRenderer(model: model).image(items, ping: model.menuBarPing, textColor: textColor,
                                                                  pingColor: model.pingLevel.flatMap(NSColor.ping))
